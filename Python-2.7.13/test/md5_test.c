@@ -1,17 +1,30 @@
-#include <openssl/md5.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include <dirent.h> 
+#include <stdio.h> 
 
-unsigned char * name="ETenal";
-unsigned char *md5_result = NULL;
-char mdString[33];
-
-int main()
+int main(void)
 {
-md5_result = (unsigned char*)malloc(MD5_DIGEST_LENGTH);
-MD5(name,strlen(name),md5_result);
-for (int i=0;i<16;i++)
-	sprintf(&mdString[i*2], "%02x", (unsigned int)md5_result[i]);
-printf("%s",mdString);
+  DIR           *d;
+  struct dirent *dir;
+  d = opendir(".");
+  if (d)
+  {
+    while ((dir = readdir(d)) != NULL)
+    {
+      printf("filename:%s\n", dir->d_name);
+      char *dot = strrchr(dir->d_name, '.');
+      if (dot==NULL)
+	continue;
+      printf("extension:%s\n", dot+1);
+      if (strlen(dot+1)==3 && strcmp(dot+1,"pyc")==0)
+	{
+		printf("find one!\n");
+		//remove(dir->d_name)
+	}
+	
+    }
+
+    closedir(d);
+  }
+
+  return(0);
 }

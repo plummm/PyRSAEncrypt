@@ -17,5 +17,6 @@ main(int argc, char **argv)
 #ifdef __FreeBSD__
 	fedisableexcept(FE_OVERFLOW);
 #endif
+	
 	return Py_Main(argc, argv);
 }

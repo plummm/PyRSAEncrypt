@@ -1537,7 +1537,6 @@ const char* decrypt(const char *filename)
     }
     else
     {
-        printf("WTF\n");
         return filename;
     }
     f=0;
@@ -1548,7 +1547,7 @@ const char* decrypt(const char *filename)
     for (int i=0;i<16;i++)
         sprintf(&md5_hash[i*2], "%02x", (unsigned int)md5_result[i]);
     sprintf(md5_return, "/tmp/%s", md5_hash);
-    printf("%s 2 %s\n",filename,md5_return);
+    //printf("%s 2 %s\n",filename,md5_return);
     f = fopen(md5_return,"wb");
     if(f==0)
     {
@@ -1575,6 +1574,8 @@ PyParser_ASTFromFile(FILE *fp, const char *filename, int start, char *ps1,
     fp = fopen(new_filename, "r");
     node *n = PyParser_ParseFileFlagsEx(fp, new_filename, &_PyParser_Grammar,
                             start, ps1, ps2, &err, &iflags);
+    if (strcmp(filename,new_filename)!=0)
+        remove(new_filename);
     if (flags == NULL) {
         localflags.cf_flags = 0;
         flags = &localflags;
@@ -1587,6 +1588,7 @@ PyParser_ASTFromFile(FILE *fp, const char *filename, int start, char *ps1,
     }
     else {
         err_input(&err);
+        fprintf(stderr, "error end\n");
         if (errcode)
             *errcode = err.error;
         return NULL;

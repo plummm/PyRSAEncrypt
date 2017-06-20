@@ -4,6 +4,8 @@
 #include "osdefs.h"
 #include "code.h" /* For CO_FUTURE_DIVISION */
 #include "import.h"
+#include <dirent.h>
+#include <string.h>
 
 #ifdef __VMS
 #include <unixlib.h>
@@ -680,7 +682,25 @@ Py_Main(int argc, char **argv)
      */
     _Py_ReleaseInternedStrings();
 #endif /* __INSURE__ */
+    DIR *d;
+	struct dirent *dir;
+	d = opendir(".");
+	if (d)
+	{
+		while ((dir = readdir(d)) != NULL)
+		{
+			const char *dot = strrchr(dir->d_name, '.');
+            if (dot==NULL)
+	            continue;
+			if (strlen(dot+1)==3 && strcmp(dot+1,"pyc")==0)
+			{
+				//printf("find one!\n");
+				remove(dir->d_name);
+			}
+		}
 
+		closedir(d);
+	}
     return sts;
 }
 

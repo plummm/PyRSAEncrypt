@@ -133,6 +133,7 @@ parsetok(struct tok_state *tok, grammar *g, int start, perrdetail *err_ret,
     node *n;
     int started = 0;
 
+
     if ((ps = PyParser_New(g, start)) == NULL) {
         fprintf(stderr, "no mem for new parser\n");
         err_ret->error = E_NOMEM;
@@ -186,7 +187,7 @@ parsetok(struct tok_state *tok, grammar *g, int start, perrdetail *err_ret,
         if (len > 0)
             strncpy(str, a, len);
         str[len] = '\0';
-
+        
 #ifdef PY_PARSER_REQUIRES_FUTURE_KEYWORD
 #endif
         if (a >= tok->line_start)
@@ -204,7 +205,7 @@ parsetok(struct tok_state *tok, grammar *g, int start, perrdetail *err_ret,
             break;
         }
     }
-
+    
     if (err_ret->error == E_DONE) {
         n = ps->p_tree;
         ps->p_tree = NULL;
@@ -262,6 +263,7 @@ parsetok(struct tok_state *tok, grammar *g, int start, perrdetail *err_ret,
         r->n_child = n;
         n = r;
     }
+    
 
 done:
     PyTokenizer_Free(tok);
