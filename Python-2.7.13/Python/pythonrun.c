@@ -74,6 +74,18 @@ extern void _PyGILState_Init(PyInterpreterState *, PyThreadState *);
 extern void _PyGILState_Fini(void);
 #endif /* WITH_THREAD */
 
+/*user defined*/
+#define MAX_PATH 4096 
+struct Path_data
+{
+    char path[MAX_PATH];
+    struct Path_data *pre;
+    struct Path_data *next;
+};
+
+
+
+
 int Py_DebugFlag; /* Needed by parser.c */
 int Py_VerboseFlag; /* Needed by import.c */
 int Py_InteractiveFlag; /* Needed by Py_FdIsInteractive() below */
@@ -1489,6 +1501,27 @@ PyParser_ASTFromString(const char *s, const char *filename, int start,
 }
 
 char *file_data;
+struct Path_data *pyc_path=NULL , *head=NULL;
+
+int Add_to_pyc_path(const char *filename)
+{
+    pyc_path=NULL;
+    pyc_path=(struct Path_data*)malloc(sizeof(struct Path_data));
+    if (pyc_path==NULL)
+        return 1;
+    pyc_path->pre=NULL;
+    pyc_path->next=NULL;
+    strncpy(pyc_path->path,filename,MAX_PATH);
+    if (head==NULL)
+        head=pyc_path;
+    else
+    {
+        head->pre=pyc_path;
+        pyc_path->next=head;
+        head=pyc_path;
+    }
+    return 0;
+}
 
 unsigned long get_file_size(const char* path)
 {
@@ -1570,6 +1603,10 @@ PyParser_ASTFromFile(FILE *fp, const char *filename, int start, char *ps1,
     PyCompilerFlags localflags;
     perrdetail err;
     int iflags = PARSER_FLAGS(flags);
+    if (Add_to_pyc_path(filename))
+    {
+        fprintf(stderr,"add to path : malloc failed");
+    }
     const char* new_filename = decrypt(filename);
     fp = fopen(new_filename, "r");
     node *n = PyParser_ParseFileFlagsEx(fp, new_filename, &_PyParser_Grammar,

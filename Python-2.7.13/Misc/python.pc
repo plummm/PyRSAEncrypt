@@ -7,7 +7,7 @@ Name: Python
 Description: Python library
 Requires: 
 Version: 2.7
-Libs.private: -lpthread -ldl  -lutil
+Libs.private: -lpthread -ldl -lcrypto  -lutil
 Libs: -L${libdir} -lpython2.7
 Cflags: -I${includedir}/python2.7 
 

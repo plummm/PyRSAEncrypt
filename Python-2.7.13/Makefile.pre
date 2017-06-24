@@ -183,7 +183,7 @@ LDLIBRARYDIR=
 INSTSONAME=	$(LDLIBRARY)
 
 
-LIBS=		-lpthread -ldl  -lutil
+LIBS=		-lpthread -ldl -lcrypto  -lutil
 LIBM=		-lm
 LIBC=		
 SYSLIBS=	$(LIBM) $(LIBC)

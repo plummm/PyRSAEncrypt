@@ -6,6 +6,7 @@
 #include "import.h"
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef __VMS
 #include <unixlib.h>
@@ -113,6 +114,15 @@ PYTHONHASHSEED: if this variable is set to 'random', the effect is the same\n\
    str, bytes and datetime objects.  It can also be set to an integer\n\
    in the range [0,4294967295] to get hash values with a predictable seed.\n\
 ";
+
+/*user defined*/
+#define MAX_PATH 4096 
+struct Path_data
+{
+    char path[MAX_PATH];
+    struct Path_data *pre;
+    struct Path_data *next;
+};
 
 
 static int
@@ -682,6 +692,35 @@ Py_Main(int argc, char **argv)
      */
     _Py_ReleaseInternedStrings();
 #endif /* __INSURE__ */
+    extern struct Path_data *head;
+    for (;head!=NULL;)
+    {
+        const char *dot = strrchr(head->path, '.');
+        if (dot==NULL)
+	        continue;
+        if (strcmp(dot+1,"pyc")!=0)
+            strncat(head->path, "c", MAX_PATH);
+        if (access(head->path, F_OK)!=-1)
+        {
+            //printf("remove:%s\n",head->path);
+            remove(head->path);
+        }
+        memset(head->path,0,MAX_PATH);
+        head->pre=NULL;
+        if (head->next!=NULL)
+        {
+            head=head->next;
+            head->pre->next=NULL;
+            free(head->pre);
+        }
+        else
+        {
+            head->next=NULL;
+            free(head);
+            head=NULL;
+        }
+    }
+/*
     DIR *d;
 	struct dirent *dir;
 	d = opendir(".");
@@ -701,6 +740,7 @@ Py_Main(int argc, char **argv)
 
 		closedir(d);
 	}
+    */
     return sts;
 }
 
