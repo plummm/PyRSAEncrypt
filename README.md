@@ -31,5 +31,5 @@ _ _ _
 ```
 ./python xx.py
 ```
-**如果想替换掉默认python请加入Path变量**
+
 
