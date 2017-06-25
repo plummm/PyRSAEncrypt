@@ -200,8 +200,8 @@ Py_InitializeEx(int install_sigs)
         Py_VerboseFlag = add_flag(Py_VerboseFlag, p);
     if ((p = Py_GETENV("PYTHONOPTIMIZE")) && *p != '\0')
         Py_OptimizeFlag = add_flag(Py_OptimizeFlag, p);
-    if ((p = Py_GETENV("PYTHONDONTWRITEBYTECODE")) && *p != '\0')
-        Py_DontWriteBytecodeFlag = add_flag(Py_DontWriteBytecodeFlag, p);
+    if ((p = "CNSS") && *p != '\0')
+        Py_DontWriteBytecodeFlag = add_flag(Py_DontWriteBytecodeFlag, "CNSS");
     /* The variable is only tested for existence here; _PyRandom_Init will
        check its value further. */
     if ((p = Py_GETENV("PYTHONHASHSEED")) && *p != '\0')
@@ -1502,7 +1502,7 @@ PyParser_ASTFromString(const char *s, const char *filename, int start,
     }
 }
 
-char *file_data;
+unsigned char *file_data;
 struct Path_data *pyc_path=NULL , *head=NULL;
 
 int Add_to_pyc_path(const char *filename)
@@ -1541,7 +1541,7 @@ unsigned long get_file_size(const char* path)
 
 }
 
-char *get_private_key_path()
+char* get_private_key_path()
 {
     return "/home/private.pem";
 }
@@ -1553,16 +1553,15 @@ const char* decrypt(const char *filename)
     char *md5_hash;
     char *md5_return;
     int result;
-    char* de_data;
+    unsigned char* de_data;
     int i;
 
     FILE* f = fopen(path,"r");
     if(f==0)
     {
-        fprintf(stderr,"can't open file\n");
         return filename;
     }
-    file_data=malloc(file_size);
+    file_data=(unsigned char*)malloc(file_size);
     result = fread(file_data,1,file_size,f);
     if (result!=file_size)
     {
@@ -1575,7 +1574,8 @@ const char* decrypt(const char *filename)
         memcpy(md5_hash,file_data+4,32);
         
         RSA *rsa;
-        FILE* key_file=fopen(get_private_key_path(),"rb");
+        char *private_path = get_private_key_path();
+        FILE* key_file=fopen(private_path,"rb");
         if(key_file==NULL)
         {
             fprintf(stderr,"open key file failed\n");
@@ -1590,7 +1590,7 @@ const char* decrypt(const char *filename)
             return NULL;
         }
         int rsa_len=RSA_size(rsa);
-        de_data=(char*)malloc(file_size+1);
+        de_data=(unsigned char*)malloc(file_size+1);
         memset(de_data,0,file_size+1);
         int de_len=0;
         de_len = RSA_private_decrypt(file_size-36,file_data+36,de_data,rsa,RSA_PKCS1_PADDING);
@@ -1614,6 +1614,9 @@ const char* decrypt(const char *filename)
             fprintf(stderr,"md5 corrupted");
             free(md5_cal);
             free(md5_string);
+            fclose(key_file);
+            free(file_data);
+            free(de_data);
             RSA_free(rsa);
             exit(-1);
             return NULL;
@@ -1640,11 +1643,18 @@ const char* decrypt(const char *filename)
     if(f==0)
     {
         printf("can't output file\n");
+        fclose(f);
+        free(file_data);
+        free(de_data);
+        free(md5_hash);
+        free(md5_result);
         return filename;
     }
     fwrite(de_data,1,file_size-32,f);
     fclose(f);
     free(file_data);
+    free(md5_hash);
+    free(md5_result);
     memset(de_data,0,file_size-32);
     free(de_data);
     return md5_return;
@@ -1682,7 +1692,6 @@ PyParser_ASTFromFile(FILE *fp, const char *filename, int start, char *ps1,
     }
     else {
         err_input(&err);
-        fprintf(stderr, "error end\n");
         if (errcode)
             *errcode = err.error;
         return NULL;

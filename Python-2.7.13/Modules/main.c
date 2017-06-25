@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #ifdef __VMS
 #include <unixlib.h>
@@ -54,6 +55,8 @@ static int  orig_argc;
 /* corresponding flag */
 extern int Py_RISCOSWimpFlag;
 #endif /*RISCOS*/
+
+pthread_t tid;
 
 /* Short usage message (with %s for argv0) */
 static char *usage_line =
@@ -243,8 +246,49 @@ static int RunMainFromImporter(char *filename)
     }
     return -1;
 }
-
-
+/*
+void* check_pyc_exist(void *arg)
+{
+    extern int checking_flag;
+    extern struct Path_data *head;
+    while (1)
+    {
+        usleep(500000);
+        if (checking_flag == 0)
+        {
+            checking_flag = 1;
+            for (;head!=NULL;)
+            {
+                const char *dot = strrchr(head->path, '.');
+                if (dot==NULL)
+                    continue;
+                if (strcmp(dot+1,"pyc")!=0)
+                    strncat(head->path, "c", MAX_PATH);
+                if (access(head->path, F_OK)!=-1)
+                {
+                    //printf("remove:%s\n",head->path);
+                    remove(head->path);
+                }
+                memset(head->path,0,MAX_PATH);
+                head->pre=NULL;
+                if (head->next!=NULL)
+                {
+                    head=head->next;
+                    head->pre->next=NULL;
+                    free(head->pre);
+                }
+                else
+                {
+                    head->next=NULL;
+                    free(head);
+                    head=NULL;
+                }
+            }
+            checking_flag = 0;
+        }
+    }
+}
+*/
 /* Main program */
 
 int
@@ -666,7 +710,11 @@ Py_Main(int argc, char **argv)
     {
         Py_InspectFlag = 1;
     }
-
+/*
+    int err = pthread_create(&(tid), NULL, &check_pyc_exist, NULL);
+    if (err == 0)
+        fprintf(stderr,"Can't create monitor thread\n");
+        */
     if (Py_InspectFlag && stdin_is_interactive &&
         (filename != NULL || command != NULL || module != NULL)) {
         Py_InspectFlag = 0;
@@ -692,12 +740,13 @@ Py_Main(int argc, char **argv)
      */
     _Py_ReleaseInternedStrings();
 #endif /* __INSURE__ */
+
     extern struct Path_data *head;
     for (;head!=NULL;)
     {
         const char *dot = strrchr(head->path, '.');
         if (dot==NULL)
-	        continue;
+            continue;
         if (strcmp(dot+1,"pyc")!=0)
             strncat(head->path, "c", MAX_PATH);
         if (access(head->path, F_OK)!=-1)
@@ -720,27 +769,7 @@ Py_Main(int argc, char **argv)
             head=NULL;
         }
     }
-/*
-    DIR *d;
-	struct dirent *dir;
-	d = opendir(".");
-	if (d)
-	{
-		while ((dir = readdir(d)) != NULL)
-		{
-			const char *dot = strrchr(dir->d_name, '.');
-            if (dot==NULL)
-	            continue;
-			if (strlen(dot+1)==3 && strcmp(dot+1,"pyc")==0)
-			{
-				//printf("find one!\n");
-				remove(dir->d_name);
-			}
-		}
 
-		closedir(d);
-	}
-    */
     return sts;
 }
 
