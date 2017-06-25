@@ -19,6 +19,8 @@
 #include "marshal.h"
 #include "abstract.h"
 #include <openssl/md5.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
 
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
@@ -1539,6 +1541,11 @@ unsigned long get_file_size(const char* path)
 
 }
 
+char *get_private_key_path()
+{
+    return "/home/private.pem";
+}
+
 const char* decrypt(const char *filename)
 {
     const char* path = filename;
@@ -1546,6 +1553,8 @@ const char* decrypt(const char *filename)
     char *md5_hash;
     char *md5_return;
     int result;
+    char* de_data;
+    int i;
 
     FILE* f = fopen(path,"r");
     if(f==0)
@@ -1560,13 +1569,59 @@ const char* decrypt(const char *filename)
         return filename;
     }
     fclose(f);
-    if (file_data[0]==0x23 && file_data[1]==0x33 && file_data[2]==0x33 && file_data[3]==0x33)
+    if (file_data[0]=='c' && file_data[1]=='n' && file_data[2]=='s' && file_data[3]=='s')
     {
-        for(int i=0;i<(int)file_size;i++)
+        char md5_hash[33]={0};
+        memcpy(md5_hash,file_data+4,32);
+        
+        RSA *rsa;
+        FILE* key_file=fopen(get_private_key_path(),"rb");
+        if(key_file==NULL)
         {
-            
-            file_data[i]^=0x123;
+            printf("open key file failed\n");
+            exit(-1);
+            return NULL;
         }
+        rsa=PEM_read_RSAPrivateKey(key_file,NULL,NULL,NULL);
+        if(rsa==NULL)
+        {
+            printf("read private key failed\n");
+            exit(-1);
+            return NULL;
+        }
+        int rsa_len=RSA_size(rsa);
+        de_data=(char*)malloc(file_size+1);
+        memset(de_data,0,file_size+1);
+        int de_len=0;
+        de_len = RSA_private_decrypt(file_size-36,file_data+36,de_data,rsa,RSA_PKCS1_PADDING);
+        if(de_len<0)
+        {
+            printf("de failed\n");
+            RSA_free(rsa);
+            exit(-1);
+            return NULL;
+        }
+        unsigned char* md5_cal=(unsigned char*)malloc(MD5_DIGEST_LENGTH);
+        MD5(de_data,de_len,md5_cal);
+        char* md5_string = (char*)malloc(33);
+        memset(md5_string,0,33);
+        for(i=0;i<16;i++)
+        {
+            sprintf(&md5_string[i*2],"%02x",(unsigned int)md5_cal[i]);
+        }
+        if(!strcpy(md5_hash,md5_string))
+        {
+            printf("md5 failed");
+            free(md5_cal);
+            free(md5_string);
+            RSA_free(rsa);
+            exit(-1);
+            return NULL;
+        }
+        RSA_free(rsa);
+        free(md5_cal);
+        free(md5_string);
+        fclose(key_file);
     }
     else
     {
@@ -1577,7 +1632,7 @@ const char* decrypt(const char *filename)
     MD5((unsigned char*)filename,strlen(filename),md5_result);
     md5_hash = malloc(33*sizeof(char));
     md5_return = malloc(40*sizeof(char));
-    for (int i=0;i<16;i++)
+    for (i=0;i<16;i++)
         sprintf(&md5_hash[i*2], "%02x", (unsigned int)md5_result[i]);
     sprintf(md5_return, "/tmp/%s", md5_hash);
     //printf("%s 2 %s\n",filename,md5_return);
@@ -1587,9 +1642,10 @@ const char* decrypt(const char *filename)
         printf("can't output file\n");
         return filename;
     }
-    fwrite(file_data+4,1,file_size-4,f);
+    fwrite(de_data,1,file_size-32,f);
     fclose(f);
     free(file_data);
+    free(de_data);
     return md5_return;
 }
 
