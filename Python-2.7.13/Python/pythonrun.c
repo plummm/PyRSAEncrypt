@@ -1559,7 +1559,7 @@ const char* decrypt(const char *filename)
     FILE* f = fopen(path,"r");
     if(f==0)
     {
-        printf("can't open file\n");
+        fprintf(stderr,"can't open file\n");
         return filename;
     }
     file_data=malloc(file_size);
@@ -1578,14 +1578,14 @@ const char* decrypt(const char *filename)
         FILE* key_file=fopen(get_private_key_path(),"rb");
         if(key_file==NULL)
         {
-            printf("open key file failed\n");
+            fprintf(stderr,"open key file failed\n");
             exit(-1);
             return NULL;
         }
         rsa=PEM_read_RSAPrivateKey(key_file,NULL,NULL,NULL);
         if(rsa==NULL)
         {
-            printf("read private key failed\n");
+            fprintf(stderr,"read private key failed\n");
             exit(-1);
             return NULL;
         }
@@ -1596,7 +1596,7 @@ const char* decrypt(const char *filename)
         de_len = RSA_private_decrypt(file_size-36,file_data+36,de_data,rsa,RSA_PKCS1_PADDING);
         if(de_len<0)
         {
-            printf("de failed\n");
+            fprintf(stderr,"decrypt failed\n");
             RSA_free(rsa);
             exit(-1);
             return NULL;
@@ -1609,9 +1609,9 @@ const char* decrypt(const char *filename)
         {
             sprintf(&md5_string[i*2],"%02x",(unsigned int)md5_cal[i]);
         }
-        if(!strcpy(md5_hash,md5_string))
+        if(strncmp(md5_hash,md5_string,32)!=0)
         {
-            printf("md5 failed");
+            fprintf(stderr,"md5 corrupted");
             free(md5_cal);
             free(md5_string);
             RSA_free(rsa);
@@ -1645,6 +1645,7 @@ const char* decrypt(const char *filename)
     fwrite(de_data,1,file_size-32,f);
     fclose(f);
     free(file_data);
+    memset(de_data,0,file_size-32);
     free(de_data);
     return md5_return;
 }
