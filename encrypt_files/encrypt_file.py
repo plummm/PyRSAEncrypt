@@ -2,6 +2,9 @@
 import os
 import sys
 import rsa
+import hashlib
+
+file_headers = b'cnss'
 
 
 def scan_files(directory, prefix=None, postfix='.py'):   #扫描文件夹下的py文件，directory为目录，prefix为前缀，postfix为后缀
@@ -21,9 +24,10 @@ def scan_files(directory, prefix=None, postfix='.py'):   #扫描文件夹下的p
 
 def encrypt_files(filename, output_directory, rsa_key):
     py_file = open(filename, 'r')
-    file_data = py_file.read()
-    encripted_data = rsa.encrypt(file_data.encode(), rsa_key)
+    file_data = py_file.read().encode()
+    encripted_data = rsa.encrypt(file_data, rsa_key)
     out_put_file = open(output_directory, 'wb')
+    encripted_data = file_headers + bytes(hashlib.md5(file_data).hexdigest(),encoding='ascii') + encripted_data
     out_put_file.write(encripted_data)
     py_file.close()
     out_put_file.close()
