@@ -8839,7 +8839,7 @@ if ${ac_cv_lib_dl_dlopen+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-ldl  $LIBS"
+LIBS="-ldl -lcrypto $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -8874,7 +8874,7 @@ if test "x$ac_cv_lib_dl_dlopen" = xyes; then :
 #define HAVE_LIBDL 1
 _ACEOF
 
-  LIBS="-ldl $LIBS"
+  LIBS="-ldl -lcrypto $LIBS"
 
 fi
 	# Dynamic linking for SunOS/Solaris and SYSV
