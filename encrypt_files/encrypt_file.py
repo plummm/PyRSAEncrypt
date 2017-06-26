@@ -3,6 +3,7 @@ import os
 import sys
 import rsa
 import hashlib
+import shutil
 
 file_headers = b'cnss'
 
@@ -50,10 +51,9 @@ def main(argv):
     input_floder_name = '/'+argv[1]
     output_floder_name = '/'+argv[2]
     py_file_list = scan_files(os.getcwd()+input_floder_name)
-    try:
-        os.makedirs(os.getcwd()+output_floder_name)
-    except FileExistsError:
-        pass
+
+    copy_dir(os.getcwd()+input_floder_name, os.getcwd() + output_floder_name)
+
     try:
         key_file = open(os.getcwd()+'/'+argv[3],'r')
         rsa_key = rsa.PublicKey.load_pkcs1(key_file.read().encode())
@@ -63,6 +63,7 @@ def main(argv):
     for file_name in py_file_list:
         encrypt_files(file_name, file_name.replace(input_floder_name,output_floder_name), rsa_key)
         print('encrypt file '+ file_name + ' success')
+
 
 def generate_key():
     # 生成密钥
@@ -75,6 +76,16 @@ def generate_key():
         f.write(privkey.save_pkcs1().decode())
         f.close()
 
+
+def copy_dir(old, new):
+    try:
+        shutil.copytree(old, new)
+    except FileExistsError:
+        shutil.rmtree(new)
+        shutil.copytree(old, new)
+    return
+
 if __name__ == '__main__':
     # generate_key()
+
     main(sys.argv)
