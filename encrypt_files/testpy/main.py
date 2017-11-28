@@ -1,1 +1,4 @@
-123123123123123
+import module
+
+module.create_dir("/home/etenal/pzhxbz")
+module.hello("/home/etenal/pzhxbz")

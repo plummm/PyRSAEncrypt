@@ -433,7 +433,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/home/etenal/Python-2.7.13'
+ac_pwd='/home/etenal/python-2.7/PyRSAEncrypt-master/Python-2.7.13'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/bin/mkdir -p'
@@ -1095,6 +1095,14 @@ D["HAVE_STRUCT_TM_TM_ZONE"]=" 1"
 D["HAVE_TM_ZONE"]=" 1"
 D["HAVE_WORKING_TZSET"]=" 1"
 D["HAVE_STAT_TV_NSEC"]=" 1"
+D["HAVE_CURSES_H"]=" 1"
+D["HAVE_NCURSES_H"]=" 1"
+D["HAVE_TERM_H"]=" 1"
+D["MVWDELCH_IS_EXPRESSION"]=" 1"
+D["WINDOW_HAS_FLAGS"]=" 1"
+D["HAVE_CURSES_IS_TERM_RESIZED"]=" 1"
+D["HAVE_CURSES_RESIZE_TERM"]=" 1"
+D["HAVE_CURSES_RESIZETERM"]=" 1"
 D["HAVE_DEV_PTMX"]=" 1"
 D["PY_FORMAT_LONG_LONG"]=" \"ll\""
 D["PY_FORMAT_SIZE_T"]=" \"z\""

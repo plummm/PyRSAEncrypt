@@ -70,7 +70,7 @@ if test ! -n "$*"; then
 fi
 
 makexp=`dirname $0`/makexp_aix
-test -x "${makexp}" || makexp="/home/etenal/Python-2.7.13/Modules/makexp_aix"
+test -x "${makexp}" || makexp="/home/etenal/python-2.7/PyRSAEncrypt-master/Python-2.7.13/Modules/makexp_aix"
 
 # Check for existence of compiler.
 CC=$1; shift

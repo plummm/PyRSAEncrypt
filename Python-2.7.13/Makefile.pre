@@ -27,10 +27,11 @@ MODLIBS=        _MODLIBS_
 VERSION=	2.7
 srcdir=		.
 
-abs_srcdir=	/home/etenal/Python-2.7.13
-abs_builddir=	/home/etenal/Python-2.7.13
+abs_srcdir=	/home/etenal/python-2.7/PyRSAEncrypt-master/Python-2.7.13
+abs_builddir=	/home/etenal/python-2.7/PyRSAEncrypt-master/Python-2.7.13
 build=		x86_64-pc-linux-gnu
 host=		x86_64-pc-linux-gnu
+ollvm_path= 	../ollvm/bin/clang
 
 CC=		gcc -pthread
 CXX=		g++ -pthread
@@ -1345,7 +1346,13 @@ config.status:	$(srcdir)/configure
 
 # Some make's put the object file in the current directory
 .c.o:
-	$(CC) -c $(PY_CFLAGS) -o $@ $<
+	@if [ $@ = 'Python/pythonrun.o' ] && [ -e $(ollvm_path) ]; then \
+		$(ollvm_path) -pthread -mllvm -sobf -mllvm -fla -mllvm -sub -w -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pythonrun.o Python/pythonrun.c;\
+	else \
+		$(CC) -w -c $(PY_CFLAGS) -o $@ $<;\
+	fi
+	
+	@echo $(CC) -c $(PY_CFLAGS) -o $@ $<
 
 # Run reindent on the library
 reindent:

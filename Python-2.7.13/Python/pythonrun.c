@@ -21,6 +21,9 @@
 #include <openssl/md5.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
 
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
@@ -1543,123 +1546,171 @@ unsigned long get_file_size(const char* path)
 
 char* get_private_key_path()
 {
-    return "/home/private.pem";
+    return "/home/etenal/python-2.7/PyRSAEncrypt-master/encrypt_files/private.pem";
 }
 
 const char* decrypt(const char *filename)
 {
-    const char* path = filename;
-    unsigned long file_size=get_file_size(path);
-    char *md5_hash;
-    char *md5_return;
-    int result;
-    unsigned char* de_data;
-    int i;
+      const char* path = filename;
+      unsigned long file_size=get_file_size(path);
+      char decrypted_aes_key[129]={0};
+      const int code_length = file_size - 4 - 128 - 16;
+      const int aes_offset = 4;
+      const int iv_offset = aes_offset + 128;
+      const int code_offset = iv_offset + 16;
+      char *md5_hash;
+      char *md5_return;
+      int result;
+      unsigned char* de_data;
+      int i;
+      int de_len = 0;
+      int len = 0;
+      
+      EVP_CIPHER_CTX *ctx;
+      FILE* f = fopen(path,"r");
+      if(f==0)
+      {
+          return filename;
+      }
+      file_data=(unsigned char*)malloc(file_size);
+      result = fread(file_data,1,file_size,f);
+      if (result!=file_size)
+      {
+          return filename;
+      }
+      fclose(f);
+      if (file_data[0]=='c' && file_data[1]=='n' && file_data[2]=='s' && file_data[3]=='s')
+      {
+          
+          //memcpy(md5_hash,file_data+4,32);
+          de_data = (unsigned char*)malloc(file_size); 
+          memset(de_data, 0,file_size);
 
-    FILE* f = fopen(path,"r");
-    if(f==0)
-    {
-        return filename;
-    }
-    file_data=(unsigned char*)malloc(file_size);
-    result = fread(file_data,1,file_size,f);
-    if (result!=file_size)
-    {
-        return filename;
-    }
-    fclose(f);
-    if (file_data[0]=='c' && file_data[1]=='n' && file_data[2]=='s' && file_data[3]=='s')
-    {
-        char md5_hash[33]={0};
-        memcpy(md5_hash,file_data+4,32);
-        
-        RSA *rsa;
-        char *private_path = get_private_key_path();
-        FILE* key_file=fopen(private_path,"rb");
-        if(key_file==NULL)
-        {
-            fprintf(stderr,"open key file failed\n");
-            exit(-1);
-            return NULL;
-        }
-        rsa=PEM_read_RSAPrivateKey(key_file,NULL,NULL,NULL);
-        if(rsa==NULL)
-        {
-            fprintf(stderr,"read private key failed\n");
-            exit(-1);
-            return NULL;
-        }
-        int rsa_len=RSA_size(rsa);
-        de_data=(unsigned char*)malloc(file_size+1);
-        memset(de_data,0,file_size+1);
-        int de_len=0;
-        de_len = RSA_private_decrypt(file_size-36,file_data+36,de_data,rsa,RSA_PKCS1_PADDING);
-        if(de_len<0)
-        {
-            fprintf(stderr,"decrypt failed\n");
-            RSA_free(rsa);
-            exit(-1);
-            return NULL;
-        }
-        unsigned char* md5_cal=(unsigned char*)malloc(MD5_DIGEST_LENGTH);
-        MD5(de_data,de_len,md5_cal);
-        char* md5_string = (char*)malloc(33);
-        memset(md5_string,0,33);
-        for(i=0;i<16;i++)
-        {
-            sprintf(&md5_string[i*2],"%02x",(unsigned int)md5_cal[i]);
-        }
-        if(strncmp(md5_hash,md5_string,32)!=0)
-        {
-            fprintf(stderr,"md5 corrupted");
-            free(md5_cal);
-            free(md5_string);
-            fclose(key_file);
-            free(file_data);
-            free(de_data);
-            RSA_free(rsa);
-            exit(-1);
-            return NULL;
-        }
-        RSA_free(rsa);
-        free(md5_cal);
-        free(md5_string);
-        fclose(key_file);
-    }
-    else
-    {
-        return filename;
-    }
-    f=0;
-    md5_result = malloc(MD5_DIGEST_LENGTH);
-    MD5((unsigned char*)filename,strlen(filename),md5_result);
-    md5_hash = malloc(33*sizeof(char));
-    md5_return = malloc(40*sizeof(char));
-    for (i=0;i<16;i++)
-        sprintf(&md5_hash[i*2], "%02x", (unsigned int)md5_result[i]);
-    sprintf(md5_return, "/tmp/%s", md5_hash);
-    //printf("%s 2 %s\n",filename,md5_return);
-    f = fopen(md5_return,"wb");
-    if(f==0)
-    {
-        printf("can't output file\n");
-        fclose(f);
-        free(file_data);
-        free(de_data);
-        free(md5_hash);
-        free(md5_result);
-        return filename;
-    }
-    fwrite(de_data,1,file_size-32,f);
-    fclose(f);
-    free(file_data);
-    free(md5_hash);
-    free(md5_result);
-    memset(de_data,0,file_size-32);
-    free(de_data);
-    return md5_return;
+          //encrypted aes key -- file_data+36
+          //iv -- file_data+164
+
+          /*
+          md5 encode
+
+          Verify file integrity
+          
+          unsigned char* md5_cal=(unsigned char*)malloc(MD5_DIGEST_LENGTH);
+          MD5(file_data+36, file_size-36,md5_cal);
+          printf("%c %d\n",file_data+36, file_size-36);
+          char* md5_string = (char*)malloc(33);
+          memset(md5_string,0,33);
+          for(i=0;i<16;i++)
+          {
+              sprintf(&md5_string[i*2],"%02x",(unsigned int)md5_cal[i]);
+          }
+          printf("%32s %32s",md5_hash, md5_string);
+          if(strncmp(md5_hash,md5_string,32)!=0)
+          {
+              fprintf(stderr,"file corrupted!");
+              free(md5_cal);
+              free(md5_string);
+              free(file_data);
+              free(de_data);
+              exit(-1);
+              return NULL;
+          }
+          */
+          
+          /*
+          RSA decrypt
+
+          return decrypted_aes_key
+          */
+          RSA *rsa;
+          char *private_path = get_private_key_path();
+          FILE* key_file=fopen(private_path,"rb");
+          if(key_file==NULL)
+          {
+              fprintf(stderr,"open key file failed\n");
+              return filename;
+          }
+          rsa=PEM_read_RSAPrivateKey(key_file,NULL,NULL,NULL);
+          if(rsa==NULL)
+          {
+              fprintf(stderr,"read private key failed\n");
+              return filename;
+          }
+          int rsa_len=RSA_size(rsa);
+          int aes_len=0;
+          aes_len = RSA_private_decrypt(128, file_data+aes_offset, decrypted_aes_key, rsa,RSA_PKCS1_PADDING);
+          if(aes_len<0)
+          {
+              fprintf(stderr,"RSA decrypt failed\n");
+              RSA_free(rsa);
+              return filename;
+          }
+          
+
+          /*
+          AES decrypt
+
+          return raw code
+          */
+          if(!(ctx = EVP_CIPHER_CTX_new()))
+          {
+            fprintf(stderr,"Initialize AES failed\n");
+            return filename;
+          }
+          if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, decrypted_aes_key, file_data+iv_offset))
+          {
+            fprintf(stderr,"Decrypt AES failed\n");
+            return filename;
+          }
+          EVP_CIPHER_CTX_set_padding(ctx, 0);
+          
+          if(1 != EVP_DecryptUpdate(ctx, de_data, &len, file_data+code_offset, code_length))
+          {
+            fprintf(stderr,"Decrypt AES failed\n");
+            return filename;
+          }
+          de_len = len;
+          if(1 != EVP_DecryptFinal_ex(ctx, de_data + len, &len)) 
+          {
+            fprintf(stderr,"Decrypt AES failed\n");
+            return filename;
+          }
+          de_len += len;
+          EVP_CIPHER_CTX_free(ctx);     
+          RSA_free(rsa);
+          fclose(key_file);
+      }
+      else
+      {
+          return filename;
+      }
+      f=0;
+      md5_result = malloc(MD5_DIGEST_LENGTH);
+      MD5((unsigned char*)filename,strlen(filename),md5_result);
+      md5_hash = malloc(33*sizeof(char));
+      md5_return = malloc(40*sizeof(char));
+      for (i=0;i<16;i++)
+          sprintf(&md5_hash[i*2], "%02x", (unsigned int)md5_result[i]);
+      sprintf(md5_return, "/tmp/%s", md5_hash);
+      f = fopen(md5_return,"wb");
+      if(f==0)
+      {
+          printf("can't output file\n");
+          fclose(f);
+          free(file_data);
+          free(de_data);
+          free(md5_hash);
+          free(md5_result);
+          return filename;
+      }
+      fwrite(de_data,1,code_length,f);
+      fclose(f);
+      free(file_data);
+      free(md5_hash);
+      free(md5_result);
+      memset(de_data,0,code_length);
+      free(de_data);
+      return md5_return;
 }
-
 
 mod_ty
 PyParser_ASTFromFile(FILE *fp, const char *filename, int start, char *ps1,

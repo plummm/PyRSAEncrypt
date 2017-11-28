@@ -4,6 +4,9 @@ import sys
 import rsa
 import hashlib
 import shutil
+import rsa.randnum
+from Crypto.Cipher import AES
+from Crypto import Random
 
 file_headers = b'cnss'
 
@@ -26,10 +29,19 @@ def scan_files(directory, prefix=None, postfix='.py'):   #扫描文件夹下的p
 def encrypt_files(filename, output_directory, rsa_key):
     py_file = open(filename, 'r')
     file_data = py_file.read().encode()
-    encripted_data = rsa.encrypt(file_data, rsa_key)
+    file_data += (16 - len(file_data) % 16) * ' '
+
+    #aes encrypt
+    aes_key = rsa.randnum.read_random_bits(128)
+    iv = Random.new().read(AES.block_size)
+    cipher = AES.new(aes_key, AES.MODE_CBC, iv)
+    encripted_data = iv + cipher.encrypt(file_data)
+    #print (encripted_data)
+    encripted_aes_key = rsa.encrypt(aes_key, rsa_key)
     out_put_file = open(output_directory, 'wb')
-    encripted_data = file_headers + bytes(hashlib.md5(file_data).hexdigest(),encoding='ascii') + encripted_data
-    out_put_file.write(encripted_data)
+    total_data = encripted_aes_key + encripted_data
+    output_data = file_headers + total_data
+    out_put_file.write(output_data)
     py_file.close()
     out_put_file.close()
 
@@ -37,32 +49,44 @@ def encrypt_files(filename, output_directory, rsa_key):
 def decrypt_files(filename, output_directory, rsa_key):
     py_file = open(filename, 'rb')
     file_data = py_file.read()
-    encripted_data = rsa.decrypt(file_data, rsa_key)
+    aes_key = file_data[36:164]
+    aes_iv = file_data[164:180]
+    data = file_data[180:]
+    decrypted_aes_key = rsa.decrypt(aes_key, rsa_key)
+    cipher = AES.new(decrypted_aes_key, AES.MODE_CBC, aes_iv)
+    decrypted_date = cipher.decrypt(data).decode('utf-8')
+
     out_put_file = open(output_directory, 'wb')
-    out_put_file.write(encripted_data)
+    out_put_file.write(decrypted_date)
     py_file.close()
     out_put_file.close()
 
 
 def main(argv):
-    if len(argv) != 4:
-        print('usage <input_floder_name> <output_floder_name> <rsa_key_file>')
+    if len(argv) != 4 and len(argv) != 2:
+        print('usage [<input_folder_name> <output_folder_name> <rsa_key_file>] [-generate]')
+        print('      ')
         return
-    input_floder_name = '/'+argv[1]
-    output_floder_name = '/'+argv[2]
-    py_file_list = scan_files(os.getcwd()+input_floder_name)
+    if len(argv) == 4:
+        input_floder_name = '/'+argv[1]
+        output_floder_name = '/'+argv[2]
+        py_file_list = scan_files(os.getcwd()+input_floder_name)
 
-    copy_dir(os.getcwd()+input_floder_name, os.getcwd() + output_floder_name)
+        copy_dir(os.getcwd()+input_floder_name, os.getcwd() + output_floder_name)
 
-    try:
+        #try:
         key_file = open(os.getcwd()+'/'+argv[3],'r')
         rsa_key = rsa.PublicKey.load_pkcs1(key_file.read().encode())
-    except FileNotFoundError:
-        print('can\'t find key file')
-        return
-    for file_name in py_file_list:
-        encrypt_files(file_name, file_name.replace(input_floder_name,output_floder_name), rsa_key)
-        print('encrypt file '+ file_name + ' success')
+        #rsa_key = rsa.PrivateKey.load_pkcs1(key_file.read().encode())
+        #except FileNotFoundError:
+        #    print('can\'t find key file')
+        #    return
+        for file_name in py_file_list:
+            encrypt_files(file_name, file_name.replace(input_floder_name,output_floder_name), rsa_key)
+            print('encrypt file '+ file_name + ' success')
+    if len(argv) == 2:
+        if argv[1] == '-generate':
+            generate_key()
 
 
 def generate_key():
