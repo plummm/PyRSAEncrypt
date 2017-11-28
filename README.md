@@ -2,7 +2,11 @@
 银杏黄项目--基于非对称加密算法的Python源码保护
 
 关键部分在**pythonrun**的**PyParser_ASTFromFile**内，每次import生成语法树前对源码解密
-
+_ _ _
+11.28更新
+###### 使用AES对源码加密，再用RSA对AES的key进行加密
+###### 更新header格式
+###### 优化了encrypt程序
 _ _ _
 6.26更新
 ###### 优化pyc处理方式
