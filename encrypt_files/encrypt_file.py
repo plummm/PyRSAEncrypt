@@ -28,7 +28,7 @@ def scan_files(directory, prefix=None, postfix='.py'):   #扫描文件夹下的p
 
 def encrypt_files(filename, output_directory, rsa_key):
     py_file = open(filename, 'r')
-    file_data = py_file.read().encode()
+    file_data = py_file.read()
     file_data += (16 - len(file_data) % 16) * ' '
 
     #aes encrypt
@@ -68,14 +68,14 @@ def main(argv):
         print('      ')
         return
     if len(argv) == 4:
-        input_floder_name = '/'+argv[1]
-        output_floder_name = '/'+argv[2]
-        py_file_list = scan_files(os.getcwd()+input_floder_name)
+        input_floder_name = argv[1]
+        output_floder_name = argv[2]
+        py_file_list = scan_files(input_floder_name)
 
-        copy_dir(os.getcwd()+input_floder_name, os.getcwd() + output_floder_name)
+        copy_dir(input_floder_name, output_floder_name)
 
         #try:
-        key_file = open(os.getcwd()+'/'+argv[3],'r')
+        key_file = open(argv[3],'r')
         rsa_key = rsa.PublicKey.load_pkcs1(key_file.read().encode())
         #rsa_key = rsa.PrivateKey.load_pkcs1(key_file.read().encode())
         #except FileNotFoundError:
