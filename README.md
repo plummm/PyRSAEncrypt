@@ -3,6 +3,10 @@
 
 关键部分在**pythonrun**的**PyParser_ASTFromFile**内，每次import生成语法树前对源码解密
 
+11.28更新
+###### 使用AES对源码加密，再用RSA对AES的key进行加密
+###### 更新header格式
+###### 优化了encrypt程序
 _ _ _
 6.26更新
 ###### 优化pyc处理方式
